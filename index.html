@@ -681,7 +681,6 @@ async function resetProgress() {
   progress = createEmptyProgress();
   await saveProgressNow();
 }
-}
 function getVocabStats() {
   const total = VOCAB.length;
   const studied = Object.keys(progress.vocabStudied).length;
