@@ -360,8 +360,9 @@ body {
   <div class="auth-card">
     <h2>📚 JLPT N5 学习平台</h2>
     <div class="sub" id="auth-subtitle">登录以同步学习进度</div>
-    <input type="email" id="auth-email" placeholder="邮箱地址" autocomplete="email">
-    <input type="password" id="auth-password" placeholder="密码（至少6位）" autocomplete="current-password">
+    <input type="text" id="auth-username" placeholder="用户名" autocomplete="username">
+    <input type="password" id="auth-password" placeholder="密码（至少6位）" autocomplete="new-password">
+    <input type="password" id="auth-password2" placeholder="确认密码" autocomplete="new-password" style="display:none;">
     <div class="auth-error" id="auth-error"></div>
     <div class="auth-success" id="auth-success"></div>
     <button class="auth-btn" id="auth-btn" onclick="handleAuth()">登 录</button>
@@ -410,6 +411,11 @@ function toggleAuthMode() {
   document.getElementById('auth-switch-text').textContent = authMode === 'login' ? '还没有账号？' : '已有账号？';
   document.getElementById('auth-switch-link').textContent = authMode === 'login' ? '立即注册' : '去登录';
   document.getElementById('auth-error').style.display = 'none';
+  document.getElementById('auth-success').style.display = 'none';
+  document.getElementById('auth-password2').style.display = authMode === 'login' ? 'none' : 'block';
+  document.getElementById('auth-username').value = '';
+  document.getElementById('auth-password').value = '';
+  document.getElementById('auth-password2').value = '';
 }
 
 // ==================== DATA ====================
@@ -564,39 +570,54 @@ function showAuthError(msg) {
 }
 
 async function handleAuth() {
-  const email = document.getElementById('auth-email').value.trim();
+  const username = document.getElementById('auth-username').value.trim();
   const password = document.getElementById('auth-password').value;
-  if (!email || !password) { showAuthError('请填写邮箱和密码'); return; }
+  const password2 = document.getElementById('auth-password2').value;
+  
+  if (!username || !password) { showAuthError('请填写用户名和密码'); return; }
+  if (username.length < 2) { showAuthError('用户名至少需要2个字符'); return; }
   if (password.length < 6) { showAuthError('密码至少需要6位'); return; }
+  
+  if (authMode === 'register' && password !== password2) {
+    showAuthError('两次输入的密码不一致'); return;
+  }
+  
+  const email = username + '@jlpt-n5.local';
   const btn = document.getElementById('auth-btn');
   btn.disabled = true; btn.textContent = '请稍候...';
+  
   let result;
   if (authMode === 'login') {
     result = await supabaseClient.auth.signInWithPassword({ email, password });
   } else {
     result = await supabaseClient.auth.signUp({ email, password });
   }
+  
   if (result.error) {
     btn.disabled = false;
     btn.textContent = authMode === 'login' ? '登 录' : '注 册';
     if (result.error.message.includes('Invalid login')) {
-      showAuthError('邮箱或密码错误');
+      showAuthError('用户名或密码错误');
     } else if (result.error.message.includes('already registered')) {
-      showAuthError('该邮箱已注册，请直接登录');
+      showAuthError('该用户名已被注册');
       authMode = 'login'; toggleAuthMode(); toggleAuthMode();
+    } else if (result.error.message.includes('rate limit')) {
+      showAuthError('操作太频繁，请稍后再试');
     } else {
       showAuthError(result.error.message);
     }
     return;
   }
-  if (authMode === 'register') {
+  
+  if (authMode === 'register' && result.data.user) {
     document.getElementById('auth-success').style.display = 'block';
     document.getElementById('auth-success').textContent = '✅ 注册成功！正在登录...';
     document.getElementById('auth-error').style.display = 'none';
-    await new Promise(r => setTimeout(r, 800));
+    await new Promise(r => setTimeout(r, 500));
     const loginResult = await supabaseClient.auth.signInWithPassword({ email, password });
     if (loginResult.error) { showAuthError('自动登录失败，请手动登录'); btn.disabled = false; btn.textContent = '登 录'; return; }
   }
+  
   onAuthenticated();
 }
 
@@ -606,14 +627,15 @@ async function onAuthenticated() {
   await loadProgressFromServer();
   renderVocab();
   const { data: { user } } = await supabaseClient.auth.getUser();
-  document.getElementById('user-email-display').textContent = user?.email || '';
+  document.getElementById('user-email-display').textContent = (user?.email || '').replace('@jlpt-n5.local', '');
 }
 
 async function handleLogout() {
   await supabaseClient.auth.signOut();
   document.getElementById('auth-overlay').style.display = 'flex';
+    document.getElementById('auth-password2').style.display = 'none';
   document.getElementById('app-main').style.display = 'none';
-  document.getElementById('auth-email').value = '';
+  document.getElementById('auth-username').value = '';
   document.getElementById('auth-password').value = '';
   document.getElementById('auth-error').style.display = 'none';
   document.getElementById('auth-btn').disabled = false;
@@ -1056,6 +1078,7 @@ async function init() {
     await onAuthenticated();
   } else {
     document.getElementById('auth-overlay').style.display = 'flex';
+    document.getElementById('auth-password2').style.display = 'none';
     document.getElementById('app-main').style.display = 'none';
   }
 }
