@@ -524,10 +524,10 @@ const GRAMMAR = [
 // ⚠️ 替换为你的 Supabase 项目 URL 和 anon key
 const SUPABASE_URL = 'https://oqqxostvatedbmyeugmi.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_CVTHMaZNkwkiVhhF5m-AEA_3zHc9_UF';
-let supabase = null;
+var supabaseClient = null;
 try {
   if (typeof window.supabase === 'undefined') throw new Error('Supabase SDK 加载失败');
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 } catch(e) {
   console.error('Supabase init error:', e);
   document.getElementById('auth-error').textContent = '网络连接失败，请刷新页面重试';
@@ -561,9 +561,9 @@ async function handleAuth() {
   btn.disabled = true; btn.textContent = '请稍候...';
   let result;
   if (authMode === 'login') {
-    result = await supabase.auth.signInWithPassword({ email, password });
+    result = await supabaseClient.auth.signInWithPassword({ email, password });
   } else {
-    result = await supabase.auth.signUp({ email, password });
+    result = await supabaseClient.auth.signUp({ email, password });
   }
   if (result.error) {
     btn.disabled = false;
@@ -583,7 +583,7 @@ async function handleAuth() {
     document.getElementById('auth-success').textContent = '✅ 注册成功！正在登录...';
     document.getElementById('auth-error').style.display = 'none';
     await new Promise(r => setTimeout(r, 800));
-    const loginResult = await supabase.auth.signInWithPassword({ email, password });
+    const loginResult = await supabaseClient.auth.signInWithPassword({ email, password });
     if (loginResult.error) { showAuthError('自动登录失败，请手动登录'); btn.disabled = false; btn.textContent = '登 录'; return; }
   }
   onAuthenticated();
@@ -594,12 +594,12 @@ async function onAuthenticated() {
   document.getElementById('app-main').style.display = 'block';
   await loadProgressFromServer();
   renderVocab();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await supabaseClient.auth.getUser();
   document.getElementById('user-email-display').textContent = user?.email || '';
 }
 
 async function handleLogout() {
-  await supabase.auth.signOut();
+  await supabaseClient.auth.signOut();
   document.getElementById('auth-overlay').style.display = 'flex';
   document.getElementById('app-main').style.display = 'none';
   document.getElementById('auth-email').value = '';
@@ -620,9 +620,9 @@ function createEmptyProgress() {
 
 async function loadProgressFromServer() {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) { progress = createEmptyProgress(); return; }
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('user_progress')
       .select('progress_data')
       .eq('user_id', user.id)
@@ -632,7 +632,7 @@ async function loadProgressFromServer() {
       if (!progress.version) { progress.version = DATA_VERSION; await saveProgressToServer(); }
     } else {
       progress = createEmptyProgress();
-      await supabase.from('user_progress').insert({ user_id: user.id, progress_data: progress });
+      await supabaseClient.from('user_progress').insert({ user_id: user.id, progress_data: progress });
     }
   } catch(e) {
     console.error('Failed to load progress:', e);
@@ -645,10 +645,10 @@ function saveProgressToServer() {
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await supabaseClient.auth.getUser();
       if (!user) return;
       progress.version = DATA_VERSION;
-      await supabase
+      await supabaseClient
         .from('user_progress')
         .upsert({ user_id: user.id, progress_data: progress, updated_at: new Date().toISOString() });
     } catch(e) { console.error('Failed to save progress:', e); }
@@ -1040,7 +1040,7 @@ function speakWord(text, btn) {
 }
 // ==================== INIT ====================
 async function init() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) {
     await onAuthenticated();
   } else {
