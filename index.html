@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <title>JLPT N5 日本語学習</title>
 <style>
 :root {
@@ -306,9 +307,69 @@ body {
   .tabs { gap: 2px; }
   .tab { font-size: 0.75rem; padding: 8px 4px; }
 }
+
+/* Auth Overlay */
+.auth-overlay {
+  position: fixed; inset: 0; background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+  display: flex; align-items: center; justify-content: center; z-index: 1000;
+}
+.auth-card {
+  background: #fff; border-radius: 16px; padding: 32px 28px; width: 100%; max-width: 380px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center;
+}
+.auth-card h2 { font-size: 1.3rem; color: #c0392b; margin-bottom: 4px; }
+.auth-card .sub { font-size: 0.8rem; color: #7f8c8d; margin-bottom: 20px; }
+.auth-card input {
+  width: 100%; padding: 12px 14px; border: 1.5px solid #e0d8cc; border-radius: 10px;
+  font-size: 0.9rem; margin-bottom: 10px; background: #faf7f2;
+}
+.auth-card input:focus { outline: none; border-color: #c0392b; }
+.auth-btn {
+  width: 100%; padding: 12px; background: #c0392b; color: #fff; border: none;
+  border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; margin-top: 6px;
+}
+.auth-btn:hover { background: #e74c3c; }
+.auth-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.auth-switch { font-size: 0.8rem; color: #7f8c8d; margin-top: 14px; }
+.auth-switch a { color: #c0392b; cursor: pointer; font-weight: 600; }
+.auth-error { color: #e74c3c; font-size: 0.78rem; margin-top: 6px; display: none; }
+.auth-success { color: #27ae60; font-size: 0.78rem; margin-top: 6px; display: none; }
+.logout-btn {
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem;
+  cursor: pointer; transition: all 0.2s;
+}
+.logout-btn:hover { background: rgba(255,255,255,0.25); }
+.header-row { display: flex; justify-content: space-between; align-items: flex-start; }
+.header-row .user-info { font-size: 0.75rem; opacity: 0.8; margin-top: 2px; }
+.loading-spinner {
+  display: inline-block; width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
+
+<!-- Auth Overlay -->
+<div id="auth-overlay" class="auth-overlay">
+  <div class="auth-card">
+    <h2>📚 JLPT N5 学习平台</h2>
+    <div class="sub" id="auth-subtitle">登录以同步学习进度</div>
+    <input type="email" id="auth-email" placeholder="邮箱地址" autocomplete="email">
+    <input type="password" id="auth-password" placeholder="密码（至少6位）" autocomplete="current-password">
+    <div class="auth-error" id="auth-error"></div>
+    <div class="auth-success" id="auth-success"></div>
+    <button class="auth-btn" id="auth-btn" onclick="handleAuth()">登 录</button>
+    <div class="auth-switch">
+      <span id="auth-switch-text">还没有账号？</span>
+      <a id="auth-switch-link" onclick="toggleAuthMode()">立即注册</a>
+    </div>
+  </div>
+</div>
+
+<div id="app-main" style="display:none;">
 <div class="container">
   <div class="header">
     <h1>📚 JLPT N5 日本語学習</h1>
@@ -457,101 +518,159 @@ const GRAMMAR = [
   { pattern:"～すぎる", meaning:"太～、过于～", detail:"表示程度过度。", ex_jp:"この料理は辛すぎます。", ex_cn:"这道菜太辣了。" },
   { pattern:"～になる", meaning:"变成～", detail:"表示状态的变化。", ex_jp:"もう春になりました。", ex_cn:"已经是春天了。" },
   { pattern:"～でしょう", meaning:"～吧（推测/确认）", detail:"表示推测或向对方确认。", ex_jp:"明日は雨でしょう。", ex_cn:"明天会下雨吧。" },
-];
-let DATA_VERSION = 1;
-const PROFILE_KEY = 'jlpt_n5_current_profile';
-function getProfile() { return localStorage.getItem(PROFILE_KEY) || '默认'; }
-function setProfile(name) { localStorage.setItem(PROFILE_KEY, name); }
-function getStorageKey() { return 'jlpt_n5_v' + DATA_VERSION + '_' + getProfile(); }
+// ==================== SUPABASE CONFIG ====================
+// ⚠️ 替换为你的 Supabase 项目 URL 和 anon key
+const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function loadProgress() {
-  const key = getStorageKey();
-  try {
-    const raw = localStorage.getItem(key);
-    if (raw) { const data = JSON.parse(raw); if (data.version === DATA_VERSION) return data; }
-  } catch(e) {}
-  try {
-    const raw = localStorage.getItem('jlpt_n5_progress');
-    if (raw) {
-      const data = JSON.parse(raw);
-      data.version = DATA_VERSION;
-      saveProgress(data);
-      localStorage.removeItem('jlpt_n5_progress');
-      return data;
-    }
-  } catch(e) {}
-  return createEmptyProgress();
+// ==================== AUTH ====================
+let authMode = 'login';
+
+function toggleAuthMode() {
+  authMode = authMode === 'login' ? 'register' : 'login';
+  document.getElementById('auth-btn').textContent = authMode === 'login' ? '登 录' : '注 册';
+  document.getElementById('auth-subtitle').textContent = authMode === 'login' ? '登录以同步学习进度' : '创建账号开始学习';
+  document.getElementById('auth-switch-text').textContent = authMode === 'login' ? '还没有账号？' : '已有账号？';
+  document.getElementById('auth-switch-link').textContent = authMode === 'login' ? '立即注册' : '去登录';
+  document.getElementById('auth-error').style.display = 'none';
 }
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg; el.style.display = 'block';
+  document.getElementById('auth-success').style.display = 'none';
+}
+
+async function handleAuth() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  if (!email || !password) { showAuthError('请填写邮箱和密码'); return; }
+  if (password.length < 6) { showAuthError('密码至少需要6位'); return; }
+  const btn = document.getElementById('auth-btn');
+  btn.disabled = true; btn.textContent = '请稍候...';
+  let result;
+  if (authMode === 'login') {
+    result = await supabase.auth.signInWithPassword({ email, password });
+  } else {
+    result = await supabase.auth.signUp({ email, password });
+  }
+  if (result.error) {
+    btn.disabled = false;
+    btn.textContent = authMode === 'login' ? '登 录' : '注 册';
+    if (result.error.message.includes('Invalid login')) {
+      showAuthError('邮箱或密码错误');
+    } else if (result.error.message.includes('already registered')) {
+      showAuthError('该邮箱已注册，请直接登录');
+      authMode = 'login'; toggleAuthMode(); toggleAuthMode();
+    } else {
+      showAuthError(result.error.message);
+    }
+    return;
+  }
+  if (authMode === 'register') {
+    document.getElementById('auth-success').style.display = 'block';
+    document.getElementById('auth-success').textContent = '✅ 注册成功！正在登录...';
+    document.getElementById('auth-error').style.display = 'none';
+    await new Promise(r => setTimeout(r, 800));
+    const loginResult = await supabase.auth.signInWithPassword({ email, password });
+    if (loginResult.error) { showAuthError('自动登录失败，请手动登录'); btn.disabled = false; btn.textContent = '登 录'; return; }
+  }
+  onAuthenticated();
+}
+
+async function onAuthenticated() {
+  document.getElementById('auth-overlay').style.display = 'none';
+  document.getElementById('app-main').style.display = 'block';
+  await loadProgressFromServer();
+  renderVocab();
+  const { data: { user } } = await supabase.auth.getUser();
+  document.getElementById('user-email-display').textContent = user?.email || '';
+}
+
+async function handleLogout() {
+  await supabase.auth.signOut();
+  document.getElementById('auth-overlay').style.display = 'flex';
+  document.getElementById('app-main').style.display = 'none';
+  document.getElementById('auth-email').value = '';
+  document.getElementById('auth-password').value = '';
+  document.getElementById('auth-error').style.display = 'none';
+  document.getElementById('auth-btn').disabled = false;
+  document.getElementById('auth-btn').textContent = '登 录';
+  authMode = 'login'; toggleAuthMode(); toggleAuthMode();
+}
+
+// ==================== PROGRESS MANAGER (Supabase) ====================
+const DATA_VERSION = 1;
+let progress = createEmptyProgress();
 
 function createEmptyProgress() {
   return { version: DATA_VERSION, vocabStudied:{}, grammarStudied:{}, quizHistory:[], streak:{count:0,lastDate:null} };
 }
-function saveProgress(p) { localStorage.setItem(getStorageKey(), JSON.stringify(p)); }
-let progress = loadProgress();
 
-function getProfiles() {
-  const profiles = new Set();
-  for (let i=0; i<localStorage.length; i++) {
-    const match = (localStorage.key(i)||'').match(/^jlpt_n5_v\d+_(.+)$/);
-    if (match) profiles.add(match[1]);
+async function loadProgressFromServer() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { progress = createEmptyProgress(); return; }
+    const { data, error } = await supabase
+      .from('user_progress')
+      .select('progress_data')
+      .eq('user_id', user.id)
+      .single();
+    if (data && data.progress_data) {
+      progress = data.progress_data;
+      if (!progress.version) { progress.version = DATA_VERSION; await saveProgressToServer(); }
+    } else {
+      progress = createEmptyProgress();
+      await supabase.from('user_progress').insert({ user_id: user.id, progress_data: progress });
+    }
+  } catch(e) {
+    console.error('Failed to load progress:', e);
+    progress = createEmptyProgress();
   }
-  if (localStorage.getItem('jlpt_n5_progress')) profiles.add('默认');
-  if (profiles.size===0) profiles.add('默认');
-  return [...profiles].sort();
 }
 
-function switchProfile(name) {
-  setProfile(name);
-  progress = loadProgress();
-  if (currentTab==='vocab') renderVocab();
-  else if (currentTab==='grammar') renderGrammar();
-  else if (currentTab==='quiz') renderQuiz();
-  else renderProgress();
-  renderProfileSelector();
+let saveTimeout = null;
+function saveProgressToServer() {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      progress.version = DATA_VERSION;
+      await supabase
+        .from('user_progress')
+        .upsert({ user_id: user.id, progress_data: progress, updated_at: new Date().toISOString() });
+    } catch(e) { console.error('Failed to save progress:', e); }
+  }, 1000);
+}
+function saveProgressNow() {
+  if (saveTimeout) { clearTimeout(saveTimeout); saveTimeout = null; }
+  saveProgressToServer();
 }
 
-function addProfile() {
-  const name = prompt('输入新的学习者名称（如：小明、妈妈）：');
-  if (!name||!name.trim()) return;
-  const n = name.trim();
-  setProfile(n);
-  progress = createEmptyProgress();
-  saveProgress(progress);
-  if (currentTab==='vocab') renderVocab();
-  else if (currentTab==='grammar') renderGrammar();
-  else if (currentTab==='quiz') renderQuiz();
-  else renderProgress();
-  renderProfileSelector();
-}
-
-function renderProfileSelector() {
-  const sel = document.getElementById('profile-select');
-  if (!sel) return;
-  const profiles = getProfiles();
-  const current = getProfile();
-  sel.innerHTML = profiles.map(p => '<option value="'+p+'"'+(p===current?' selected':'')+'>👤 '+p+'</option>').join('');
-}
 function markVocabStudied(kanji) {
   progress.vocabStudied[kanji] = true;
-  saveProgress(progress);
+  saveProgressToServer();
 }
 function markGrammarStudied(pattern) {
   progress.grammarStudied[pattern] = true;
-  saveProgress(progress);
+  saveProgressToServer();
 }
 function addQuizResult(type, score, total) {
   progress.quizHistory.push({ date: new Date().toISOString(), type, score, total });
   const today = new Date().toISOString().slice(0,10);
-  if (progress.streak.lastDate === today) return;
+  if (progress.streak.lastDate === today) { saveProgressToServer(); return; }
   const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10);
   if (progress.streak.lastDate === yesterday) { progress.streak.count++; }
   else { progress.streak.count = 1; }
   progress.streak.lastDate = today;
-  saveProgress(progress);
+  saveProgressNow();
 }
-function resetProgress() {
+async function resetProgress() {
   progress = createEmptyProgress();
-  saveProgress(progress);
+  await saveProgressNow();
+}
 }
 function getVocabStats() {
   const total = VOCAB.length;
@@ -910,10 +1029,21 @@ function speakWord(text, btn) {
   utter.onerror = () => { if (btn) { btn.classList.remove("speaking"); speakingBtn = null; } };
   speechSynth.speak(utter);
 }
-// Init
-renderVocab();
-renderProfileSelector();
+// ==================== INIT ====================
+async function init() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    await onAuthenticated();
+  } else {
+    document.getElementById('auth-overlay').style.display = 'flex';
+    document.getElementById('app-main').style.display = 'none';
+  }
+}
+
+init();
 </script>
+</div>
+</div>
+<!-- end app-main -->
 </body>
 </html>
-
