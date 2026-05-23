@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <title>JLPT N5 日本語学習</title>
 <style>
 :root {
@@ -332,7 +332,7 @@ body {
 .auth-btn:hover { background: #e74c3c; }
 .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .auth-switch { font-size: 0.8rem; color: #7f8c8d; margin-top: 14px; }
-.auth-switch a { color: #c0392b; cursor: pointer; font-weight: 600; }
+.auth-switch span { color: #c0392b; cursor: pointer; font-weight: 600; }
 .auth-error { color: #e74c3c; font-size: 0.78rem; margin-top: 6px; display: none; }
 .auth-success { color: #27ae60; font-size: 0.78rem; margin-top: 6px; display: none; }
 .logout-btn {
@@ -364,7 +364,7 @@ body {
     <button class="auth-btn" id="auth-btn" onclick="handleAuth()">登 录</button>
     <div class="auth-switch">
       <span id="auth-switch-text">还没有账号？</span>
-      <a id="auth-switch-link" onclick="toggleAuthMode()">立即注册</a>
+      <span id="auth-switch-link" onclick="toggleAuthMode()" style="cursor:pointer;color:#c0392b;font-weight:600;">立即注册</span>
     </div>
   </div>
 </div>
