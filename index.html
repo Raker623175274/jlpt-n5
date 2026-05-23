@@ -40,6 +40,11 @@ body {
 }
 .header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.5px; }
 .header .subtitle { font-size: 0.85rem; opacity: 0.85; margin-top: 4px; }
+.profile-bar { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; }
+.profile-select { padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.15); color: #fff; font-size: 0.8rem; cursor: pointer; max-width: 160px; }
+.profile-select option { color: #2c3e50; }
+.profile-add-btn { width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.15); color: #fff; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.profile-add-btn:hover { background: rgba(255,255,255,0.3); }
 
 /* Tabs */
 .tabs {
@@ -308,6 +313,10 @@ body {
   <div class="header">
     <h1>📚 JLPT N5 日本語学習</h1>
     <div class="subtitle">词汇 · 语法 · 习题 · 进度追踪</div>
+  <div class="profile-bar">
+    <select id="profile-select" onchange="switchProfile(this.value)" class="profile-select"></select>
+    <button onclick="addProfile()" class="profile-add-btn" title="添加学习者">＋</button>
+  </div>
   </div>
 
   <div class="tabs">
@@ -449,23 +458,79 @@ const GRAMMAR = [
   { pattern:"～になる", meaning:"变成～", detail:"表示状态的变化。", ex_jp:"もう春になりました。", ex_cn:"已经是春天了。" },
   { pattern:"～でしょう", meaning:"～吧（推测/确认）", detail:"表示推测或向对方确认。", ex_jp:"明日は雨でしょう。", ex_cn:"明天会下雨吧。" },
 ];
-// ==================== PROGRESS MANAGER ====================
-const STORAGE_KEY = 'jlpt_n5_progress';
+let DATA_VERSION = 1;
+const PROFILE_KEY = 'jlpt_n5_current_profile';
+function getProfile() { return localStorage.getItem(PROFILE_KEY) || '默认'; }
+function setProfile(name) { localStorage.setItem(PROFILE_KEY, name); }
+function getStorageKey() { return 'jlpt_n5_v' + DATA_VERSION + '_' + getProfile(); }
+
 function loadProgress() {
+  const key = getStorageKey();
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    const raw = localStorage.getItem(key);
+    if (raw) { const data = JSON.parse(raw); if (data.version === DATA_VERSION) return data; }
   } catch(e) {}
-  return {
-    vocabStudied: {},   // { "私": true, ... }
-    grammarStudied: {}, // { "～は～です": true, ... }
-    quizHistory: [],    // [{ date, type, score, total }]
-    streak: { count: 0, lastDate: null }
-  };
+  try {
+    const raw = localStorage.getItem('jlpt_n5_progress');
+    if (raw) {
+      const data = JSON.parse(raw);
+      data.version = DATA_VERSION;
+      saveProgress(data);
+      localStorage.removeItem('jlpt_n5_progress');
+      return data;
+    }
+  } catch(e) {}
+  return createEmptyProgress();
 }
-function saveProgress(p) { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); }
+
+function createEmptyProgress() {
+  return { version: DATA_VERSION, vocabStudied:{}, grammarStudied:{}, quizHistory:[], streak:{count:0,lastDate:null} };
+}
+function saveProgress(p) { localStorage.setItem(getStorageKey(), JSON.stringify(p)); }
 let progress = loadProgress();
 
+function getProfiles() {
+  const profiles = new Set();
+  for (let i=0; i<localStorage.length; i++) {
+    const match = (localStorage.key(i)||'').match(/^jlpt_n5_v\d+_(.+)$/);
+    if (match) profiles.add(match[1]);
+  }
+  if (localStorage.getItem('jlpt_n5_progress')) profiles.add('默认');
+  if (profiles.size===0) profiles.add('默认');
+  return [...profiles].sort();
+}
+
+function switchProfile(name) {
+  setProfile(name);
+  progress = loadProgress();
+  if (currentTab==='vocab') renderVocab();
+  else if (currentTab==='grammar') renderGrammar();
+  else if (currentTab==='quiz') renderQuiz();
+  else renderProgress();
+  renderProfileSelector();
+}
+
+function addProfile() {
+  const name = prompt('输入新的学习者名称（如：小明、妈妈）：');
+  if (!name||!name.trim()) return;
+  const n = name.trim();
+  setProfile(n);
+  progress = createEmptyProgress();
+  saveProgress(progress);
+  if (currentTab==='vocab') renderVocab();
+  else if (currentTab==='grammar') renderGrammar();
+  else if (currentTab==='quiz') renderQuiz();
+  else renderProgress();
+  renderProfileSelector();
+}
+
+function renderProfileSelector() {
+  const sel = document.getElementById('profile-select');
+  if (!sel) return;
+  const profiles = getProfiles();
+  const current = getProfile();
+  sel.innerHTML = profiles.map(p => '<option value="'+p+'"'+(p===current?' selected':'')+'>👤 '+p+'</option>').join('');
+}
 function markVocabStudied(kanji) {
   progress.vocabStudied[kanji] = true;
   saveProgress(progress);
@@ -476,20 +541,16 @@ function markGrammarStudied(pattern) {
 }
 function addQuizResult(type, score, total) {
   progress.quizHistory.push({ date: new Date().toISOString(), type, score, total });
-  // Update streak
   const today = new Date().toISOString().slice(0,10);
   if (progress.streak.lastDate === today) return;
   const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10);
-  if (progress.streak.lastDate === yesterday) {
-    progress.streak.count++;
-  } else {
-    progress.streak.count = 1;
-  }
+  if (progress.streak.lastDate === yesterday) { progress.streak.count++; }
+  else { progress.streak.count = 1; }
   progress.streak.lastDate = today;
   saveProgress(progress);
 }
 function resetProgress() {
-  progress = { vocabStudied:{}, grammarStudied:{}, quizHistory:[], streak:{count:0,lastDate:null} };
+  progress = createEmptyProgress();
   saveProgress(progress);
 }
 function getVocabStats() {
@@ -851,6 +912,7 @@ function speakWord(text, btn) {
 }
 // Init
 renderVocab();
+renderProfileSelector();
 </script>
 </body>
 </html>
