@@ -1,0 +1,857 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JLPT N5 日本語学習</title>
+<style>
+:root {
+  --bg: #f9f6f0;
+  --card: #ffffff;
+  --primary: #c0392b;
+  --primary-light: #e74c3c;
+  --accent: #e67e22;
+  --success: #27ae60;
+  --text: #2c3e50;
+  --muted: #7f8c8d;
+  --border: #e8e0d5;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --radius: 12px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: "Segoe UI", "Hiragino Sans", "Meiryo", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+.container { max-width: 800px; margin: 0 auto; padding: 16px; }
+
+/* Header */
+.header {
+  text-align: center;
+  padding: 24px 16px 16px;
+  background: linear-gradient(135deg, #c0392b, #8e1e1e);
+  color: #fff;
+  border-radius: 0 0 var(--radius) var(--radius);
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+.header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.5px; }
+.header .subtitle { font-size: 0.85rem; opacity: 0.85; margin-top: 4px; }
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 4px;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+  position: sticky;
+  top: 8px;
+  z-index: 10;
+}
+.tab {
+  flex: 1;
+  padding: 10px 8px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.tab:hover { color: var(--text); background: #f5f0e8; }
+.tab.active { background: var(--primary); color: #fff; }
+
+/* Cards */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+.card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+
+/* Category Filter */
+.category-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.cat-btn {
+  padding: 6px 14px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text);
+  transition: all 0.2s;
+}
+.cat-btn:hover { border-color: var(--primary); color: var(--primary); }
+.cat-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* Vocab Cards */
+.vocab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+.vocab-card {
+  background: #fefefe;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.vocab-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--primary-light); }
+.vocab-card.flipped .vocab-back { display: block; }
+.vocab-card .kanji { font-size: 1.4rem; font-weight: 700; color: var(--text); }
+.vocab-card .kana { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+.vocab-card .meaning { font-size: 0.85rem; color: var(--primary); font-weight: 600; margin-top: 4px; }
+.speak-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--border);
+  background: var(--card); cursor: pointer; font-size: 0.9rem;
+  transition: all 0.2s; vertical-align: middle; margin-left: 4px;
+}
+.speak-btn:hover { border-color: var(--primary); background: #fff5f5; transform: scale(1.1); }
+.speak-btn.speaking { border-color: var(--accent); background: #fff8e1; animation: pulse 0.6s infinite; }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+.vocab-card .example { font-size: 0.75rem; color: var(--muted); margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border); display: none; }
+.vocab-card.expanded .example { display: block; }
+.vocab-card .studied-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.7rem;
+  background: var(--success);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 10px;
+  display: none;
+}
+.vocab-card.studied .studied-badge { display: block; }
+
+/* Grammar */
+.grammar-list { display: flex; flex-direction: column; gap: 10px; }
+.grammar-item {
+  background: #fefefe;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.grammar-item:hover { box-shadow: var(--shadow); border-color: var(--accent); }
+.grammar-item .pattern { font-size: 1.15rem; font-weight: 700; color: var(--primary); }
+.grammar-item .g-meaning { font-size: 0.85rem; color: var(--accent); font-weight: 600; margin-top: 2px; }
+.grammar-item .g-detail { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); font-size: 0.85rem; }
+.grammar-item.expanded .g-detail { display: block; }
+.grammar-item .g-example { background: #f9f6f0; padding: 10px; border-radius: 8px; margin-top: 8px; }
+.grammar-item .g-example .jp { color: var(--text); }
+.grammar-item .g-example .cn { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+
+/* Quiz */
+.quiz-setup { margin-bottom: 16px; }
+.quiz-setup label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem; }
+.quiz-setup select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+}
+.quiz-question {
+  background: linear-gradient(135deg, #fef9f0, #fdf6e8);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 24px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+.quiz-question .q-prompt { font-size: 0.8rem; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+.quiz-question .q-text { font-size: 1.8rem; font-weight: 700; color: var(--text); }
+.quiz-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.quiz-option {
+  padding: 14px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  text-align: center;
+}
+.quiz-option:hover { border-color: var(--primary-light); background: #fff5f5; }
+.quiz-option.correct { border-color: var(--success); background: #eafaf1; color: var(--success); }
+.quiz-option.wrong { border-color: #e74c3c; background: #fdedec; color: #e74c3c; }
+.quiz-option:disabled { pointer-events: none; }
+.quiz-result {
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 10px;
+  text-align: center;
+  display: none;
+}
+.quiz-result.show { display: block; }
+.quiz-result.correct-r { background: #eafaf1; border: 1px solid var(--success); }
+.quiz-result.wrong-r { background: #fdedec; border: 1px solid #e74c3c; }
+.quiz-result .result-icon { font-size: 1.5rem; }
+.quiz-result .explanation { font-size: 0.85rem; color: var(--muted); margin-top: 8px; }
+.next-btn {
+  display: block;
+  margin: 12px auto 0;
+  padding: 10px 32px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 25px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.next-btn:hover { background: var(--primary-light); transform: translateY(-1px); }
+
+/* Progress */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.stat-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+.stat-card .stat-num { font-size: 1.8rem; font-weight: 700; color: var(--primary); }
+.stat-card .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+.progress-bar-wrap { background: #e8e0d5; border-radius: 8px; height: 10px; margin-top: 8px; overflow: hidden; }
+.progress-bar-fill { background: linear-gradient(90deg, var(--primary), var(--accent)); height: 100%; border-radius: 8px; transition: width 0.5s; }
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+.history-item:last-child { border-bottom: none; }
+.reset-btn {
+  display: block;
+  margin: 16px auto 0;
+  padding: 8px 24px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.reset-btn:hover { color: #e74c3c; border-color: #e74c3c; }
+
+/* Misc */
+.section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.section-title span.count { font-size: 0.8rem; color: var(--muted); }
+.empty-state { text-align: center; padding: 32px; color: var(--muted); }
+.empty-state .icon { font-size: 2.5rem; margin-bottom: 8px; }
+.search-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+  background: var(--card);
+}
+.search-input:focus { outline: none; border-color: var(--primary); }
+.flashcard-mode .vocab-card { min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+
+@media (max-width: 480px) {
+  .header h1 { font-size: 1.3rem; }
+  .vocab-grid { grid-template-columns: 1fr 1fr; }
+  .quiz-options { grid-template-columns: 1fr; }
+  .tabs { gap: 2px; }
+  .tab { font-size: 0.75rem; padding: 8px 4px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>📚 JLPT N5 日本語学習</h1>
+    <div class="subtitle">词汇 · 语法 · 习题 · 进度追踪</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="vocab">📝 词汇</button>
+    <button class="tab" data-tab="grammar">📖 语法</button>
+    <button class="tab" data-tab="quiz">✏️ 习题</button>
+    <button class="tab" data-tab="progress">📊 进度</button>
+  </div>
+
+  <div id="tab-content"></div>
+</div>
+
+<script>
+// ==================== DATA ====================
+const VOCAB = [
+  // People / 人
+  { kanji:"私", kana:"わたし", meaning:"我", cat:"人", ex:"私は学生です。", ex_cn:"我是学生。" },
+  { kanji:"あなた", kana:"あなた", meaning:"你", cat:"人", ex:"あなたは先生ですか。", ex_cn:"你是老师吗？" },
+  { kanji:"彼", kana:"かれ", meaning:"他；男朋友", cat:"人", ex:"彼は日本人です。", ex_cn:"他是日本人。" },
+  { kanji:"彼女", kana:"かのじょ", meaning:"她；女朋友", cat:"人", ex:"彼女は優しいです。", ex_cn:"她很温柔。" },
+  { kanji:"父", kana:"ちち", meaning:"（我的）父亲", cat:"人", ex:"父は会社員です。", ex_cn:"我父亲是公司职员。" },
+  { kanji:"母", kana:"はは", meaning:"（我的）母亲", cat:"人", ex:"母は料理が上手です。", ex_cn:"我母亲很会做饭。" },
+  { kanji:"友達", kana:"ともだち", meaning:"朋友", cat:"人", ex:"友達と遊びます。", ex_cn:"和朋友一起玩。" },
+  { kanji:"先生", kana:"せんせい", meaning:"老师", cat:"人", ex:"先生、おはようございます。", ex_cn:"老师早上好。" },
+  { kanji:"学生", kana:"がくせい", meaning:"学生", cat:"人", ex:"私は学生です。", ex_cn:"我是学生。" },
+  { kanji:"家族", kana:"かぞく", meaning:"家人；家庭", cat:"人", ex:"家族は四人です。", ex_cn:"我家有四口人。" },
+  { kanji:"子供", kana:"こども", meaning:"小孩", cat:"人", ex:"子供が二人います。", ex_cn:"有两个小孩。" },
+  // Objects / 物
+  { kanji:"本", kana:"ほん", meaning:"书", cat:"物", ex:"この本は面白いです。", ex_cn:"这本书很有趣。" },
+  { kanji:"机", kana:"つくえ", meaning:"桌子", cat:"物", ex:"机の上に本があります。", ex_cn:"桌子上有书。" },
+  { kanji:"椅子", kana:"いす", meaning:"椅子", cat:"物", ex:"椅子に座ってください。", ex_cn:"请坐椅子上。" },
+  { kanji:"電話", kana:"でんわ", meaning:"电话", cat:"物", ex:"電話番号を教えてください。", ex_cn:"请告诉我电话号码。" },
+  { kanji:"鞄", kana:"かばん", meaning:"包", cat:"物", ex:"この鞄は重いです。", ex_cn:"这个包很重。" },
+  { kanji:"傘", kana:"かさ", meaning:"伞", cat:"物", ex:"傘を持ってきましたか。", ex_cn:"带伞来了吗？" },
+  { kanji:"靴", kana:"くつ", meaning:"鞋", cat:"物", ex:"新しい靴を買いました。", ex_cn:"买了新鞋。" },
+  { kanji:"服", kana:"ふく", meaning:"衣服", cat:"物", ex:"この服は安いです。", ex_cn:"这件衣服很便宜。" },
+  { kanji:"時計", kana:"とけい", meaning:"钟表", cat:"物", ex:"この時計は高いです。", ex_cn:"这个表很贵。" },
+  { kanji:"写真", kana:"しゃしん", meaning:"照片", cat:"物", ex:"写真を撮ってもいいですか。", ex_cn:"可以拍照吗？" },
+  // Places / 場所
+  { kanji:"学校", kana:"がっこう", meaning:"学校", cat:"場所", ex:"学校に行きます。", ex_cn:"去学校。" },
+  { kanji:"駅", kana:"えき", meaning:"车站", cat:"場所", ex:"駅はどこですか。", ex_cn:"车站在哪里？" },
+  { kanji:"病院", kana:"びょういん", meaning:"医院", cat:"場所", ex:"病院へ行きました。", ex_cn:"去了医院。" },
+  { kanji:"店", kana:"みせ", meaning:"商店", cat:"場所", ex:"あの店で買いました。", ex_cn:"在那家店买的。" },
+  { kanji:"公園", kana:"こうえん", meaning:"公园", cat:"場所", ex:"公園を散歩します。", ex_cn:"在公园散步。" },
+  { kanji:"図書館", kana:"としょかん", meaning:"图书馆", cat:"場所", ex:"図書館で勉強します。", ex_cn:"在图书馆学习。" },
+  { kanji:"家", kana:"いえ/うち", meaning:"家", cat:"場所", ex:"家に帰ります。", ex_cn:"回家。" },
+  { kanji:"部屋", kana:"へや", meaning:"房间", cat:"場所", ex:"部屋は明るいです。", ex_cn:"房间很明亮。" },
+  { kanji:"台所", kana:"だいどころ", meaning:"厨房", cat:"場所", ex:"台所で料理します。", ex_cn:"在厨房做饭。" },
+  { kanji:"入口", kana:"いりぐち", meaning:"入口", cat:"場所", ex:"入口はあちらです。", ex_cn:"入口在那边。" },
+  // Time / 時間
+  { kanji:"今日", kana:"きょう", meaning:"今天", cat:"時間", ex:"今日は金曜日です。", ex_cn:"今天是星期五。" },
+  { kanji:"明日", kana:"あした", meaning:"明天", cat:"時間", ex:"明日、映画を見ます。", ex_cn:"明天看电影。" },
+  { kanji:"昨日", kana:"きのう", meaning:"昨天", cat:"時間", ex:"昨日は雨でした。", ex_cn:"昨天下雨了。" },
+  { kanji:"毎日", kana:"まいにち", meaning:"每天", cat:"時間", ex:"毎日日本語を勉強します。", ex_cn:"每天学日语。" },
+  { kanji:"朝", kana:"あさ", meaning:"早上", cat:"時間", ex:"朝ご飯を食べました。", ex_cn:"吃了早饭。" },
+  { kanji:"昼", kana:"ひる", meaning:"中午", cat:"時間", ex:"昼休みは12時です。", ex_cn:"午休是12点。" },
+  { kanji:"夜", kana:"よる", meaning:"晚上", cat:"時間", ex:"夜、テレビを見ます。", ex_cn:"晚上看电视。" },
+  { kanji:"今", kana:"いま", meaning:"现在", cat:"時間", ex:"今、何時ですか。", ex_cn:"现在几点了？" },
+  { kanji:"来週", kana:"らいしゅう", meaning:"下周", cat:"時間", ex:"来週、試験があります。", ex_cn:"下周有考试。" },
+  { kanji:"先週", kana:"せんしゅう", meaning:"上周", cat:"時間", ex:"先週は忙しかったです。", ex_cn:"上周很忙。" },
+  // Verbs / 動詞
+  { kanji:"食べる", kana:"たべる", meaning:"吃", cat:"動詞", ex:"朝ご飯を食べます。", ex_cn:"吃早饭。" },
+  { kanji:"飲む", kana:"のむ", meaning:"喝", cat:"動詞", ex:"水を飲みます。", ex_cn:"喝水。" },
+  { kanji:"行く", kana:"いく", meaning:"去", cat:"動詞", ex:"学校に行きます。", ex_cn:"去学校。" },
+  { kanji:"来る", kana:"くる", meaning:"来", cat:"動詞", ex:"友達が来ます。", ex_cn:"朋友来。" },
+  { kanji:"見る", kana:"みる", meaning:"看", cat:"動詞", ex:"テレビを見ます。", ex_cn:"看电视。" },
+  { kanji:"聞く", kana:"きく", meaning:"听；问", cat:"動詞", ex:"音楽を聞きます。", ex_cn:"听音乐。" },
+  { kanji:"話す", kana:"はなす", meaning:"说；谈话", cat:"動詞", ex:"日本語を話します。", ex_cn:"说日语。" },
+  { kanji:"読む", kana:"よむ", meaning:"读", cat:"動詞", ex:"本を読みます。", ex_cn:"读书。" },
+  { kanji:"書く", kana:"かく", meaning:"写", cat:"動詞", ex:"手紙を書きます。", ex_cn:"写信。" },
+  { kanji:"買う", kana:"かう", meaning:"买", cat:"動詞", ex:"パンを買います。", ex_cn:"买面包。" },
+  { kanji:"する", kana:"する", meaning:"做", cat:"動詞", ex:"宿題をします。", ex_cn:"做作业。" },
+  { kanji:"勉強する", kana:"べんきょうする", meaning:"学习", cat:"動詞", ex:"毎日勉強します。", ex_cn:"每天学习。" },
+  { kanji:"寝る", kana:"ねる", meaning:"睡觉", cat:"動詞", ex:"11時に寝ます。", ex_cn:"11点睡觉。" },
+  { kanji:"起きる", kana:"おきる", meaning:"起床", cat:"動詞", ex:"6時に起きます。", ex_cn:"6点起床。" },
+  { kanji:"歩く", kana:"あるく", meaning:"走路", cat:"動詞", ex:"駅まで歩きます。", ex_cn:"走到车站。" },
+  { kanji:"作る", kana:"つくる", meaning:"制作", cat:"動詞", ex:"晩ご飯を作ります。", ex_cn:"做晚饭。" },
+  { kanji:"使う", kana:"つかう", meaning:"使用", cat:"動詞", ex:"辞書を使います。", ex_cn:"使用字典。" },
+  { kanji:"会う", kana:"あう", meaning:"见面", cat:"動詞", ex:"友達に会います。", ex_cn:"见朋友。" },
+  // Adjectives / 形容詞
+  { kanji:"大きい", kana:"おおきい", meaning:"大的", cat:"形容詞", ex:"大きい犬です。", ex_cn:"是大狗。" },
+  { kanji:"小さい", kana:"ちいさい", meaning:"小的", cat:"形容詞", ex:"小さい猫です。", ex_cn:"是小猫。" },
+  { kanji:"新しい", kana:"あたらしい", meaning:"新的", cat:"形容詞", ex:"新しい車です。", ex_cn:"是新车。" },
+  { kanji:"古い", kana:"ふるい", meaning:"旧的", cat:"形容詞", ex:"古い町です。", ex_cn:"是古老的城镇。" },
+  { kanji:"美味しい", kana:"おいしい", meaning:"好吃的", cat:"形容詞", ex:"このラーメンは美味しいです。", ex_cn:"这个拉面很好吃。" },
+  { kanji:"高い", kana:"たかい", meaning:"贵的；高的", cat:"形容詞", ex:"この時計は高いです。", ex_cn:"这个表很贵。" },
+  { kanji:"安い", kana:"やすい", meaning:"便宜的", cat:"形容詞", ex:"この店は安いです。", ex_cn:"这家店很便宜。" },
+  { kanji:"良い", kana:"いい/よい", meaning:"好的", cat:"形容詞", ex:"いい天気ですね。", ex_cn:"天气真好呢。" },
+  { kanji:"悪い", kana:"わるい", meaning:"坏的", cat:"形容詞", ex:"悪い習慣です。", ex_cn:"是不好的习惯。" },
+  { kanji:"楽しい", kana:"たのしい", meaning:"快乐的", cat:"形容詞", ex:"旅行は楽しいです。", ex_cn:"旅行很快乐。" },
+  { kanji:"忙しい", kana:"いそがしい", meaning:"忙碌的", cat:"形容詞", ex:"今日は忙しいです。", ex_cn:"今天很忙。" },
+  { kanji:"静か", kana:"しずか", meaning:"安静的", cat:"形容詞", ex:"この公園は静かです。", ex_cn:"这个公园很安静。" },
+  { kanji:"元気", kana:"げんき", meaning:"有精神的", cat:"形容詞", ex:"お元気ですか。", ex_cn:"你好吗？" },
+  { kanji:"好き", kana:"すき", meaning:"喜欢", cat:"形容詞", ex:"猫が好きです。", ex_cn:"喜欢猫。" },
+  // Food / 食べ物
+  { kanji:"水", kana:"みず", meaning:"水", cat:"食べ物", ex:"水をください。", ex_cn:"请给我水。" },
+  { kanji:"お茶", kana:"おちゃ", meaning:"茶", cat:"食べ物", ex:"お茶を飲みませんか。", ex_cn:"喝杯茶吗？" },
+  { kanji:"ご飯", kana:"ごはん", meaning:"米饭；餐", cat:"食べ物", ex:"ご飯を食べましょう。", ex_cn:"吃饭吧。" },
+  { kanji:"肉", kana:"にく", meaning:"肉", cat:"食べ物", ex:"肉が好きです。", ex_cn:"喜欢肉。" },
+  { kanji:"魚", kana:"さかな", meaning:"鱼", cat:"食べ物", ex:"魚を食べました。", ex_cn:"吃了鱼。" },
+  { kanji:"野菜", kana:"やさい", meaning:"蔬菜", cat:"食べ物", ex:"野菜を食べてください。", ex_cn:"请吃蔬菜。" },
+  { kanji:"果物", kana:"くだもの", meaning:"水果", cat:"食べ物", ex:"果物が好きですか。", ex_cn:"喜欢水果吗？" },
+  { kanji:"卵", kana:"たまご", meaning:"鸡蛋", cat:"食べ物", ex:"卵を二つください。", ex_cn:"请给我两个鸡蛋。" },
+  // Other useful / その他
+  { kanji:"天気", kana:"てんき", meaning:"天气", cat:"その他", ex:"今日はいい天気ですね。", ex_cn:"今天天气真好啊。" },
+  { kanji:"名前", kana:"なまえ", meaning:"名字", cat:"その他", ex:"お名前は何ですか。", ex_cn:"您的名字是什么？" },
+  { kanji:"国", kana:"くに", meaning:"国家", cat:"その他", ex:"国はどこですか。", ex_cn:"你的国家是哪里？" },
+  { kanji:"町", kana:"まち", meaning:"城镇", cat:"その他", ex:"この町は静かです。", ex_cn:"这个城镇很安静。" },
+  { kanji:"日本語", kana:"にほんご", meaning:"日语", cat:"その他", ex:"日本語を勉強しています。", ex_cn:"正在学日语。" },
+  { kanji:"英語", kana:"えいご", meaning:"英语", cat:"その他", ex:"英語が話せますか。", ex_cn:"会说英语吗？" },
+];
+
+const CATEGORIES = [...new Set(VOCAB.map(v=>v.cat))];
+
+const GRAMMAR = [
+  { pattern:"～は～です", meaning:"A 是 B（肯定句）", detail:"最基本的判断句式，「は」提示主题，「です」表示礼貌肯定。", ex_jp:"私は学生です。", ex_cn:"我是学生。" },
+  { pattern:"～は～じゃありません", meaning:"A 不是 B（否定句）", detail:"「じゃありません」是「ではありません」的口语形式，表示礼貌否定。", ex_jp:"私は先生じゃありません。", ex_cn:"我不是老师。" },
+  { pattern:"～は～でした", meaning:"A（过去）是 B", detail:"「でした」是「です」的过去式。", ex_jp:"昨日は日曜日でした。", ex_cn:"昨天是星期天。" },
+  { pattern:"～が～です", meaning:"A 是 B（强调主语）", detail:"「が」用于强调主语、描述眼前现象、或表示好恶/能力。", ex_jp:"猫が好きです。", ex_cn:"喜欢猫。" },
+  { pattern:"～を～ます", meaning:"做～（宾语+动词）", detail:"「を」标记动作的直接对象。", ex_jp:"本を読みます。", ex_cn:"读书。" },
+  { pattern:"～に～ます", meaning:"方向/目的地+动词", detail:"「に」表示移动的方向或目的地，也用于时间点。", ex_jp:"学校に行きます。", ex_cn:"去学校。" },
+  { pattern:"～で～ます", meaning:"交通工具/手段/场所+动词", detail:"「で」表示动作发生的地点、使用的手段。", ex_jp:"バスで行きます。", ex_cn:"坐公交去。" },
+  { pattern:"～へ～ます", meaning:"向～（方向）+动词", detail:"「へ」与「に」相似，但更强调方向而非目的地。", ex_jp:"日本へ行きたいです。", ex_cn:"想去日本。" },
+  { pattern:"～と～", meaning:"～和～", detail:"「と」连接并列名词，表示\"和/与\"。", ex_jp:"パンと牛乳を買います。", ex_cn:"买面包和牛奶。" },
+  { pattern:"～から / ～まで", meaning:"从～到～", detail:"「から」表示起点，「まで」表示终点。", ex_jp:"9時から5時まで働きます。", ex_cn:"从9点工作到5点。" },
+  { pattern:"～ましょう", meaning:"咱们～吧（劝诱）", detail:"动词连用形+ましょう，表示劝诱、提议一起做。", ex_jp:"一緒に行きましょう。", ex_cn:"一起去吧。" },
+  { pattern:"～ませんか", meaning:"不～吗？（邀请）", detail:"礼貌地邀请对方做某事。", ex_jp:"映画を見ませんか。", ex_cn:"不一起看电影吗？" },
+  { pattern:"～たい", meaning:"想做～", detail:"动词连用形+たい，表示第一人称的愿望。", ex_jp:"日本に行きたいです。", ex_cn:"想去日本。" },
+  { pattern:"～ている", meaning:"正在～（进行态）", detail:"表示动作正在进行或状态持续。", ex_jp:"今、勉強しています。", ex_cn:"现在正在学习。" },
+  { pattern:"～た（過去形）", meaning:"～了（过去式）", detail:"动词的た形表示过去、完了。", ex_jp:"昨日、映画を見た。", ex_cn:"昨天看了电影。" },
+  { pattern:"～ない（否定形）", meaning:"不～（否定）", detail:"动词的ない形表示否定。", ex_jp:"朝ご飯を食べない。", ex_cn:"不吃早饭。" },
+  { pattern:"～てください", meaning:"请～", detail:"动词て形+ください，表示礼貌的请求。", ex_jp:"ちょっと待ってください。", ex_cn:"请等一下。" },
+  { pattern:"～てもいいですか", meaning:"可以～吗？", detail:"动词て形+もいいですか，请求许可。", ex_jp:"写真を撮ってもいいですか。", ex_cn:"可以拍照吗？" },
+  { pattern:"～てはいけません", meaning:"不可以～（禁止）", detail:"表示禁止做某事。", ex_jp:"ここでタバコを吸ってはいけません。", ex_cn:"这里不可以吸烟。" },
+  { pattern:"～前に / ～後で", meaning:"～之前 / ～之后", detail:"名词+の+前に/後で、动词辞书形+前に、动词た形+後で。", ex_jp:"食事の前に手を洗います。", ex_cn:"饭前洗手。" },
+  { pattern:"～ことができます", meaning:"能～、会～", detail:"动词辞书形+ことができる，表示能力或可能性。", ex_jp:"日本語を話すことができます。", ex_cn:"会说日语。" },
+  { pattern:"～ほうがいい", meaning:"最好～、还是～好", detail:"表示建议、忠告。", ex_jp:"早く寝たほうがいいですよ。", ex_cn:"最好早点睡哦。" },
+  { pattern:"～すぎる", meaning:"太～、过于～", detail:"表示程度过度。", ex_jp:"この料理は辛すぎます。", ex_cn:"这道菜太辣了。" },
+  { pattern:"～になる", meaning:"变成～", detail:"表示状态的变化。", ex_jp:"もう春になりました。", ex_cn:"已经是春天了。" },
+  { pattern:"～でしょう", meaning:"～吧（推测/确认）", detail:"表示推测或向对方确认。", ex_jp:"明日は雨でしょう。", ex_cn:"明天会下雨吧。" },
+];
+// ==================== PROGRESS MANAGER ====================
+const STORAGE_KEY = 'jlpt_n5_progress';
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return {
+    vocabStudied: {},   // { "私": true, ... }
+    grammarStudied: {}, // { "～は～です": true, ... }
+    quizHistory: [],    // [{ date, type, score, total }]
+    streak: { count: 0, lastDate: null }
+  };
+}
+function saveProgress(p) { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); }
+let progress = loadProgress();
+
+function markVocabStudied(kanji) {
+  progress.vocabStudied[kanji] = true;
+  saveProgress(progress);
+}
+function markGrammarStudied(pattern) {
+  progress.grammarStudied[pattern] = true;
+  saveProgress(progress);
+}
+function addQuizResult(type, score, total) {
+  progress.quizHistory.push({ date: new Date().toISOString(), type, score, total });
+  // Update streak
+  const today = new Date().toISOString().slice(0,10);
+  if (progress.streak.lastDate === today) return;
+  const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10);
+  if (progress.streak.lastDate === yesterday) {
+    progress.streak.count++;
+  } else {
+    progress.streak.count = 1;
+  }
+  progress.streak.lastDate = today;
+  saveProgress(progress);
+}
+function resetProgress() {
+  progress = { vocabStudied:{}, grammarStudied:{}, quizHistory:[], streak:{count:0,lastDate:null} };
+  saveProgress(progress);
+}
+function getVocabStats() {
+  const total = VOCAB.length;
+  const studied = Object.keys(progress.vocabStudied).length;
+  return { total, studied, pct: total ? Math.round(studied/total*100) : 0 };
+}
+function getGrammarStats() {
+  const total = GRAMMAR.length;
+  const studied = Object.keys(progress.grammarStudied).length;
+  return { total, studied, pct: total ? Math.round(studied/total*100) : 0 };
+}
+function getQuizStats() {
+  const h = progress.quizHistory;
+  if (!h.length) return { total: 0, totalCorrect: 0, avgPct: 0 };
+  let correct = 0, total = 0;
+  h.forEach(q => { correct += q.score; total += q.total; });
+  return { total: h.length, totalCorrect: correct, totalQ: total, avgPct: Math.round(correct/total*100) };
+}
+// ==================== RENDERERS ====================
+const $content = document.getElementById('tab-content');
+let currentTab = 'vocab';
+let vocabFilter = 'all';
+let vocabSearchQuery = '';
+let grammarSearch = '';
+let quizState = null;
+
+// --- Vocab Tab ---
+function renderVocab() {
+  let filtered = VOCAB;
+  if (vocabSearchQuery) { filtered = filtered.filter(v => v.kanji.includes(vocabSearchQuery) || v.kana.includes(vocabSearchQuery) || v.meaning.toLowerCase().includes(vocabSearchQuery)); }
+  if (vocabFilter !== 'all') filtered = VOCAB.filter(v => v.cat === vocabFilter);
+
+  let html = '<div class="card"><h2>📝 N5 词汇</h2>';
+  html += '<input class="search-input" type="text" placeholder="🔍 搜索词汇..." oninput="vocabSearch(this.value)" id="vocab-search"' + (vocabSearchQuery ? ' value="' + vocabSearchQuery + '"' : '') + '>';
+  html += '<div class="category-filters">';
+  html += `<button class="cat-btn ${vocabFilter==='all'?'active':''}" onclick="setVocabFilter('all')">全部 (${VOCAB.length})</button>`;
+  CATEGORIES.forEach(c => {
+    const count = VOCAB.filter(v=>v.cat===c).length;
+    html += `<button class="cat-btn ${vocabFilter===c?'active':''}" onclick="setVocabFilter('${c}')">${c} (${count})</button>`;
+  });
+  html += '</div>';
+  html += '<div class="section-title"><span class="count">共 ' + filtered.length + ' 个词汇 | 点击卡片展开例句</span></div>';
+  html += '<div class="vocab-grid" id="vocab-grid">';
+  filtered.forEach(v => {
+    const studied = progress.vocabStudied[v.kanji] ? ' studied' : '';
+    html += `<div class="vocab-card${studied}" onclick="toggleVocabCard(this, '${v.kanji.replace(/'/g,"\\'")}')">
+      <span class="studied-badge">✓ 已学</span>
+      <div class="kanji">${v.kanji}</div>
+      <div class="kana">${v.kana}<button class="speak-btn" onclick="event.stopPropagation();speakWord(&apos;${v.kana}&apos;, this)" title="播放发音">🔊</button></div>
+      <div class="meaning">${v.meaning}</div>
+      <div class="example">📖 ${v.ex}<br><span style="color:#999">${v.ex_cn}</span></div>
+    </div>`;
+  });
+  html += '</div></div>';
+  $content.innerHTML = html;
+}
+function vocabSearch(q) { vocabSearchQuery = q.toLowerCase(); renderVocab(); }
+function setVocabFilter(cat) { vocabFilter = cat; vocabSearchQuery = ''; renderVocab(); }
+function toggleVocabCard(el, kanji) {
+  el.classList.toggle('expanded');
+  if (!progress.vocabStudied[kanji]) {
+    markVocabStudied(kanji);
+    el.classList.add('studied');
+  }
+}
+
+// --- Grammar Tab ---
+function renderGrammar() {
+  let filtered = GRAMMAR;
+  if (grammarSearch) {
+    const q = grammarSearch.toLowerCase();
+    filtered = GRAMMAR.filter(g => g.pattern.toLowerCase().includes(q) || g.meaning.toLowerCase().includes(q) || g.detail.toLowerCase().includes(q));
+  }
+  let html = '<div class="card"><h2>📖 N5 文法</h2>';
+  html += '<input class="search-input" type="text" placeholder="🔍 搜索语法..." value="' + grammarSearch + '" oninput="grammarSearchFn(this.value)">';
+  html += '<div class="section-title"><span class="count">共 ' + filtered.length + ' 个文法 | 点击展开详解</span></div>';
+  html += '<div class="grammar-list">';
+  filtered.forEach(g => {
+    const studied = progress.grammarStudied[g.pattern] ? ' ✓已学' : '';
+    html += `<div class="grammar-item" onclick="toggleGrammarItem(this, '${g.pattern.replace(/'/g,"\\'")}')">
+      <div class="pattern">${g.pattern}${studied}</div>
+      <div class="g-meaning">${g.meaning}</div>
+      <div class="g-detail">
+        <p>${g.detail}</p>
+        <div class="g-example"><div class="jp">${g.ex_jp}</div><div class="cn">${g.ex_cn}</div></div>
+      </div>
+    </div>`;
+  });
+  html += '</div></div>';
+  $content.innerHTML = html;
+}
+function grammarSearchFn(q) { grammarSearch = q; renderGrammar(); }
+function toggleGrammarItem(el, pattern) {
+  el.classList.toggle('expanded');
+  if (!progress.grammarStudied[pattern]) {
+    markGrammarStudied(pattern);
+    el.querySelector('.pattern').textContent = pattern + ' ✓已学';
+  }
+}
+
+// --- Quiz Tab ---
+function renderQuiz() {
+  let html = '<div class="card"><h2>✏️ 习题练习</h2>';
+  html += '<div class="quiz-setup">';
+  html += '<label>选择题型</label>';
+  html += '<select id="quiz-type" onchange="startQuiz()">';
+  html += '<option value="vocab-ja2cn">词汇：看日语选中文释义</option>';
+  html += '<option value="vocab-cn2ja">词汇：看中文选日语</option>';
+  html += '<option value="grammar-fill">语法：选择正确文法</option>';
+  html += '<option value="grammar-particle">语法：选择正确助词</option>';
+  html += '<option value="mixed">综合混合</option>';
+  html += '</select>';
+  html += '<label style="margin-top:10px;">题目数量</label>';
+  html += '<select id="quiz-count" onchange="startQuiz()">';
+  html += '<option value="5">5 题</option>';
+  html += '<option value="10" selected>10 题</option>';
+  html += '<option value="15">15 题</option>';
+  html += '<option value="20">20 题</option>';
+  html += '</select>';
+  html += '</div>';
+  html += '<div id="quiz-area">';
+  html += '<div class="empty-state"><div class="icon">🎯</div><p>选择题型后自动开始</p></div>';
+  html += '</div></div>';
+  $content.innerHTML = html;
+  startQuiz();
+}
+
+function startQuiz() {
+  const type = document.getElementById('quiz-type')?.value || 'vocab-ja2cn';
+  quizState = generateQuiz(type);
+  renderQuizQuestion();
+}
+function generateQuiz(type) {
+  const questions = [];
+  const n = parseInt(document.getElementById('quiz-count')?.value || '10');
+  if (type === 'vocab-ja2cn') {
+    const pool = [...VOCAB].sort(() => Math.random()-0.5).slice(0, n);
+    pool.forEach(v => {
+      const wrong = VOCAB.filter(x => x.kanji !== v.kanji).sort(() => Math.random()-0.5).slice(0, 3);
+      const options = [v, ...wrong].sort(() => Math.random()-0.5);
+      questions.push({
+        prompt: '这个词是什么意思？',
+        text: v.kanji + '（' + v.kana + '）',
+        options: options.map(o => o.meaning),
+        correct: options.indexOf(v),
+        explanation: v.kanji + ' = ' + v.meaning + '。' + (v.ex ? '例句：' + v.ex + '（' + v.ex_cn + '）' : ''),
+        type: 'vocab-ja2cn'
+      });
+    });
+  } else if (type === 'vocab-cn2ja') {
+    const pool = [...VOCAB].sort(() => Math.random()-0.5).slice(0, n);
+    pool.forEach(v => {
+      const wrong = VOCAB.filter(x => x.kanji !== v.kanji).sort(() => Math.random()-0.5).slice(0, 3);
+      const options = [v, ...wrong].sort(() => Math.random()-0.5);
+      questions.push({
+        prompt: '选出对应的日语',
+        text: v.meaning,
+        options: options.map(o => o.kanji + '（' + o.kana + '）'),
+        correct: options.indexOf(v),
+        explanation: v.meaning + ' = ' + v.kanji + '（' + v.kana + '）。' + (v.ex ? '例句：' + v.ex + '（' + v.ex_cn + '）' : ''),
+        type: 'vocab-cn2ja'
+      });
+    });
+  } else if (type === 'grammar-fill') {
+    const pool = [...GRAMMAR].sort(() => Math.random()-0.5).slice(0, n);
+    pool.forEach(g => {
+      const wrong = GRAMMAR.filter(x => x.pattern !== g.pattern).sort(() => Math.random()-0.5).slice(0, 3);
+      const options = [g, ...wrong].sort(() => Math.random()-0.5);
+      questions.push({
+        prompt: '这个句型的意思是？',
+        text: g.pattern,
+        options: options.map(o => o.meaning),
+        correct: options.indexOf(g),
+        explanation: g.pattern + ' = ' + g.meaning + '。' + g.detail + ' 例句：' + g.ex_jp + '（' + g.ex_cn + '）',
+        type: 'grammar-fill'
+      });
+    });
+  } else if (type === 'grammar-particle') {
+    const particleQs = [
+      { text:'私___学生です。', prompt:'填入正确的助词', options:['は','が','を','に'], correct:0, explanation:'「は」提示主题。私「は」学生です = 我是学生。' },
+      { text:'本___読みます。', prompt:'填入正确的助词', options:['が','を','に','で'], correct:1, explanation:'「を」标记宾语。本「を」読みます = 读书。' },
+      { text:'学校___行きます。', prompt:'填入正确的助词', options:['を','で','に','が'], correct:2, explanation:'「に」表示目的地。学校「に」行きます = 去学校。' },
+      { text:'バス___行きます。', prompt:'填入正确的助词', options:['に','を','で','が'], correct:2, explanation:'「で」表示手段。バス「で」行きます = 坐公交去。' },
+      { text:'パン___牛乳を買います。', prompt:'填入正确的助词', options:['に','で','と','が'], correct:2, explanation:'「と」表示并列。パン「と」牛乳 = 面包和牛奶。' },
+      { text:'9時___勉強します。', prompt:'填入正确的助词', options:['に','で','を','と'], correct:0, explanation:'时间点用「に」。9時「に」勉強します = 9点学习。' },
+      { text:'公園___散歩します。', prompt:'填入正确的助词', options:['に','を','で','が'], correct:1, explanation:'移动的路径用「を」。公園「を」散歩します = 在公园散步。' },
+      { text:'駅___歩きます。', prompt:'填入正确的助词', options:['に','を','で','まで'], correct:3, explanation:'「まで」表示终点。駅「まで」歩きます = 走到车站。' },
+      { text:'部屋___綺麗です。', prompt:'填入正确的助词', options:['が','は','を','に'], correct:1, explanation:'「は」提示主题。部屋「は」綺麗です = 房间很漂亮。' },
+      { text:'日本語___話せますか。', prompt:'填入正确的助词', options:['は','に','を','が'], correct:3, explanation:'能力对象用「が」。日本語「が」話せますか = 会说日语吗？' },
+    ];
+    const pool = particleQs.sort(() => Math.random()-0.5).slice(0, n);
+    pool.forEach(q => { q.type = 'grammar-particle'; questions.push(q); });
+  } else if (type === 'mixed') {
+    // Mix vocab and grammar
+    const vPool = [...VOCAB].sort(() => Math.random()-0.5).slice(0, 5);
+    const gPool = [...GRAMMAR].sort(() => Math.random()-0.5).slice(0, 5);
+    vPool.forEach(v => {
+      const wrong = VOCAB.filter(x => x.kanji !== v.kanji).sort(() => Math.random()-0.5).slice(0, 3);
+      const options = [v, ...wrong].sort(() => Math.random()-0.5);
+      questions.push({
+        prompt: '这个词是什么意思？',
+        text: v.kanji + '（' + v.kana + '）',
+        options: options.map(o => o.meaning),
+        correct: options.indexOf(v),
+        explanation: v.kanji + ' = ' + v.meaning + '。',
+        type: 'mixed'
+      });
+    });
+    gPool.forEach(g => {
+      const wrong = GRAMMAR.filter(x => x.pattern !== g.pattern).sort(() => Math.random()-0.5).slice(0, 3);
+      const options = [g, ...wrong].sort(() => Math.random()-0.5);
+      questions.push({
+        prompt: '这个句型的意思是？',
+        text: g.pattern,
+        options: options.map(o => o.meaning),
+        correct: options.indexOf(g),
+        explanation: g.pattern + ' = ' + g.meaning + '。' + g.detail,
+        type: 'mixed'
+      });
+    });
+  }
+  return { questions, current: 0, score: 0, answered: false, type };
+}
+function renderQuizQuestion() {
+  if (!quizState) { startQuiz(); return; }
+  const q = quizState.questions[quizState.current];
+  const area = document.getElementById('quiz-area');
+  if (!area) return;
+  const pct = Math.round((quizState.current) / quizState.questions.length * 100);
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <span style="font-weight:600;">第 ${quizState.current+1} / ${quizState.questions.length} 题</span>
+    <span style="color:var(--muted);font-size:0.8rem;">得分: ${quizState.score}</span>
+  </div>`;
+  html += '<div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:'+pct+'%"></div></div>';
+  html += `<div class="quiz-question"><div class="q-prompt">${q.prompt}</div><div class="q-text">${q.text}</div></div>`;
+  html += '<div class="quiz-options">';
+  q.options.forEach((opt, i) => {
+    html += `<button class="quiz-option" data-idx="${i}" onclick="answerQuiz(${i})">${opt}</button>`;
+  });
+  html += '</div><div class="quiz-result" id="quiz-result"></div>';
+  area.innerHTML = html;
+  quizState.answered = false;
+}
+function answerQuiz(idx) {
+  if (quizState.answered) return;
+  quizState.answered = true;
+  const q = quizState.questions[quizState.current];
+  const isCorrect = idx === q.correct;
+  if (isCorrect) quizState.score++;
+
+  // Highlight options
+  const opts = document.querySelectorAll('.quiz-option');
+  opts.forEach((o, i) => {
+    o.disabled = true;
+    if (i === q.correct) o.classList.add('correct');
+    else if (i === idx && !isCorrect) o.classList.add('wrong');
+  });
+
+  // Show result
+  const resultDiv = document.getElementById('quiz-result');
+  resultDiv.className = 'quiz-result show ' + (isCorrect ? 'correct-r' : 'wrong-r');
+  resultDiv.innerHTML = `<div class="result-icon">${isCorrect ? '✅ 正解！' : '❌ 不正确'}</div>
+    <div class="explanation">${q.explanation}</div>`;
+
+  // Next button
+  if (quizState.current < quizState.questions.length - 1) {
+    resultDiv.innerHTML += `<button class="next-btn" onclick="nextQuestion()">下一题 →</button>`;
+  } else {
+    resultDiv.innerHTML += `<button class="next-btn" onclick="finishQuiz()">查看结果 🎉</button>`;
+  }
+}
+function nextQuestion() {
+  quizState.current++;
+  renderQuizQuestion();
+}
+function finishQuiz() {
+  addQuizResult(quizState.type, quizState.score, quizState.questions.length);
+  const area = document.getElementById('quiz-area');
+  const pct = Math.round(quizState.score / quizState.questions.length * 100);
+  let emoji = pct >= 90 ? '🏆' : pct >= 70 ? '👍' : pct >= 50 ? '📚' : '💪';
+  area.innerHTML = `<div class="quiz-result show correct-r" style="display:block;">
+    <div class="result-icon" style="font-size:3rem;">${emoji}</div>
+    <h3 style="margin:8px 0;">${pct}%</h3>
+    <p>答对 ${quizState.score} / ${quizState.questions.length} 题</p>
+    <p style="font-size:0.8rem;color:var(--muted);">进度已自动保存</p>
+    <button class="next-btn" onclick="startQuiz()">再练一组 🔄</button>
+  </div>`;
+}
+
+// --- Progress Tab ---
+function renderProgress() {
+  const vs = getVocabStats();
+  const gs = getGrammarStats();
+  const qs = getQuizStats();
+  let html = '<div class="card"><h2>📊 学习进度</h2>';
+  html += '<div class="stats-grid">';
+  html += `<div class="stat-card"><div class="stat-num">${progress.streak.count || 0}</div><div class="stat-label">🔥 连续学习天数</div></div>`;
+  html += `<div class="stat-card"><div class="stat-num">${vs.studied}/${vs.total}</div><div class="stat-label">📝 已学词汇</div><div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${vs.pct}%"></div></div></div>`;
+  html += `<div class="stat-card"><div class="stat-num">${gs.studied}/${gs.total}</div><div class="stat-label">📖 已学文法</div><div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${gs.pct}%"></div></div></div>`;
+  html += `<div class="stat-card"><div class="stat-num">${qs.total}</div><div class="stat-label">✏️ 练习次数</div></div>`;
+  html += `<div class="stat-card"><div class="stat-num">${qs.avgPct}%</div><div class="stat-label">🎯 平均正确率</div></div>`;
+  html += '</div>';
+
+  // Quiz history
+  html += '<h3 style="margin:16px 0 8px;font-size:0.95rem;">📋 练习记录</h3>';
+  if (progress.quizHistory.length === 0) {
+    html += '<div class="empty-state"><p>还没有练习记录，去做几道题吧！</p></div>';
+  } else {
+    html += '<div class="card" style="padding:0;">';
+    [...progress.quizHistory].reverse().slice(0, 20).forEach(h => {
+      const d = new Date(h.date);
+      const dateStr = d.toLocaleDateString('zh-CN', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+      const typeMap = { 'vocab-ja2cn':'词汇日→中', 'vocab-cn2ja':'词汇中→日', 'grammar-fill':'文法释义', 'grammar-particle':'助词选择', 'mixed':'综合' };
+      html += `<div class="history-item"><span>${dateStr} · ${typeMap[h.type]||h.type}</span><span style="font-weight:600;">${h.score}/${h.total} (${Math.round(h.score/h.total*100)}%)</span></div>`;
+    });
+    html += '</div>';
+  }
+  html += '<button class="reset-btn" onclick="resetProgressAndRender()">⚠️ 重置所有进度</button>';
+  html += '</div>';
+  $content.innerHTML = html;
+}
+function resetProgressAndRender() {
+  if (confirm('确定要重置所有学习进度吗？此操作不可撤销！')) {
+    resetProgress();
+    renderProgress();
+  }
+}
+
+// --- Tab Switching ---
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+  if (tab === 'vocab') renderVocab();
+  else if (tab === 'grammar') renderGrammar();
+  else if (tab === 'quiz') renderQuiz();
+  else if (tab === 'progress') renderProgress();
+}
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => switchTab(t.dataset.tab));
+});
+
+
+// --- Speech ---
+let speechSynth = window.speechSynthesis;
+let speakingBtn = null;
+function speakWord(text, btn) {
+  if (speechSynth.speaking) { speechSynth.cancel(); }
+  if (speakingBtn) { speakingBtn.classList.remove("speaking"); }
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "ja-JP";
+  utter.rate = 0.85;
+  utter.onstart = () => { if (btn) { btn.classList.add("speaking"); speakingBtn = btn; } };
+  utter.onend = () => { if (btn) { btn.classList.remove("speaking"); speakingBtn = null; } };
+  utter.onerror = () => { if (btn) { btn.classList.remove("speaking"); speakingBtn = null; } };
+  speechSynth.speak(utter);
+}
+// Init
+renderVocab();
+</script>
+</body>
+</html>
+
