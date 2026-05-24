@@ -27,6 +27,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS set_updated_at ON user_progress;
 CREATE TRIGGER set_updated_at
   BEFORE UPDATE ON user_progress
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -35,13 +36,16 @@ CREATE TRIGGER set_updated_at
 ALTER TABLE user_progress ENABLE ROW LEVEL SECURITY;
 
 -- 用户只能读取自己的进度
+DROP POLICY IF EXISTS "读自己的进度" ON user_progress;
 CREATE POLICY "读自己的进度" ON user_progress
   FOR SELECT USING (auth.uid() = user_id);
 
 -- 用户只能插入自己的进度
+DROP POLICY IF EXISTS "插入自己的进度" ON user_progress;
 CREATE POLICY "插入自己的进度" ON user_progress
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- 用户只能更新自己的进度
+DROP POLICY IF EXISTS "更新自己的进度" ON user_progress;
 CREATE POLICY "更新自己的进度" ON user_progress
   FOR UPDATE USING (auth.uid() = user_id);
