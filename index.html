@@ -44,12 +44,6 @@ body {
 }
 .header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.5px; }
 .header .subtitle { font-size: 0.85rem; opacity: 0.85; margin-top: 4px; }
-.profile-bar { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; }
-.profile-select { padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.15); color: #fff; font-size: 0.8rem; cursor: pointer; max-width: 160px; }
-.profile-select option { color: #2c3e50; }
-.profile-add-btn { width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.15); color: #fff; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
-.profile-add-btn:hover { background: rgba(255,255,255,0.3); }
-
 /* Tabs */
 .tabs {
   display: flex;
@@ -384,10 +378,6 @@ body {
       </div>
       <button onclick="handleLogout()" class="logout-btn">退出</button>
     </div>
-  <div class="profile-bar">
-    <select id="profile-select" onchange="switchProfile(this.value)" class="profile-select"></select>
-    <button onclick="addProfile()" class="profile-add-btn" title="添加学习者">＋</button>
-  </div>
   </div>
 
   <div class="tabs">
