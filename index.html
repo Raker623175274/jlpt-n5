@@ -582,7 +582,7 @@ async function handleAuth() {
     showAuthError('两次输入的密码不一致'); return;
   }
   
-  const email = username + '@jlpt-n5.local';
+  const email = username + '@n5.jlpt';
   const btn = document.getElementById('auth-btn');
   btn.disabled = true; btn.textContent = '请稍候...';
   
@@ -627,7 +627,7 @@ async function onAuthenticated() {
   await loadProgressFromServer();
   renderVocab();
   const { data: { user } } = await supabaseClient.auth.getUser();
-  document.getElementById('user-email-display').textContent = (user?.email || '').replace('@jlpt-n5.local', '');
+  document.getElementById('user-email-display').textContent = (user?.email || '').replace('@n5.jlpt', '');
 }
 
 async function handleLogout() {
